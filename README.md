@@ -12,34 +12,26 @@ If you already have git installed, skip this one (obviously).
   ```
   sudo apt-get install git
   ```
-Clone this repository (or you could just download the file) and install it:
+Clone this repository (or you could just download the files):
   ```
   git clone https://github.com/noimjosh/chip_autoshutdown.git
+  ```
+Install the script:
+  ```
   cd chip_autoshutdown
   sudo cp ./chip_autoshutdown.sh /usr/bin/
   ```
-
-# Cron Job Setup
-
-Edit the root crontab
-
+Install systemd service (so it runs at boot):
   ```
-  sudo crontab -e
+  sudo cp ./chip_autoshutdown.service /lib/systemd/system/
+  sudo systemctl daemon-reload
+  sudo systemctl enable chip_autoshutdown.service
   ```
-
-For 1 Minute check, enter:
-
+Start it:
   ```
-  */1 * * * * /usr/bin/chip_autoshutdown.sh
+  sudo systemctl start chip_autoshutdown.service
   ```
-
-For 5 Minute check, enter:
-
-  ```
-  */5 * * * * /usr/bin/chip_autoshutdown.sh
-  ```
-
-
+  
 #Thanks to
 xtacocorex: https://github.com/xtacocorex/chip_batt_autoshutdown/
 
