@@ -8,6 +8,9 @@ This needs to be run as root due to the shutdown command.
 This script does not have a loop internal to it and should be set to a cron job (preferably root cron) at a 5 or 10 minute interval.
 
 # Installation
+  ```
+  sudo apt-get install git
+  ```
 
   ```
   git clone https://github.com/noimjosh/chip_autoshutdown.git
