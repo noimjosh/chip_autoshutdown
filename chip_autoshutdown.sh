@@ -10,18 +10,16 @@
 
 # LOGGING HAT-TIP TO http://urbanautomaton.com/blog/2014/09/09/redirecting-bash-script-output-to-syslog/
 
-# THIS NEEDS TO BE RUN AS ROOT
-# PROBABLY SET AS A CRON JOB EVERY 5 OR 10 MINUTES
+# THIS NEEDS TO BE RUN AS ROOT - RUN AS SERVICE DURING STARTUP
 
 # SIMPLE SCRIPT TO POWER DOWN THE CHIP WHEN MICRO USB POWER IS LOST
 # NOTE, THIS WILL ONLY WORK IF A LIPO BATTERY IS ATTACHED
 
-readonly SCRIPT_NAME=$(basename $0)
-
-log() {
-    echo "$@"
-    logger -p user.notice -t $SCRIPT_NAME "$@"
-}
+# CHANGE THESE TO CUSTOMIZE THE SCRIPT
+# *****************************
+# ** THIS MUST BE AN INTEGER **
+POLLING_WAIT=10
+# *****************************
 
 # set ADC enabled for all channels
 ADC=$(i2cget -y -f 0 0x34 0x82)
@@ -34,13 +32,17 @@ if [ "$ADC" != "0xff" ] ; then
     sleep 1
 fi
 
-# GET MICRO USB POWER STATUS
-PLUGGED_IN=$(i2cget -y -f 0 0x34 0x5a)
-
-# SEE IF POWER EXISTS ON MICRO USB
-if [ $(($PLUGGED_IN)) -ne 0 ]; then
-    log "CHIP IS STILL RECEIVING POWER FROM MICRO USB"
-else
-    log "CHIP IS NO LONGER RECEIVING POWER FROM MICRO USB, INITIATING SHUTDOWN"
-    shutdown now
-fi
+while true
+do
+    # GET MICRO USB POWER STATUS
+    PLUGGED_IN=$(i2cget -y -f 0 0x34 0x5a)
+    
+    # SEE IF POWER EXISTS ON MICRO USB
+    if [ $(($PLUGGED_IN)) -ne 0 ]; then
+        log "CHIP IS STILL RECEIVING POWER FROM MICRO USB"
+    else
+        log "CHIP IS NO LONGER RECEIVING POWER FROM MICRO USB, INITIATING SHUTDOWN"
+        shutdown now
+    fi
+    sleep $POLLING_WAIT
+done
