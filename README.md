@@ -1,4 +1,4 @@
-CHIP Battery Auto-Shutdown
+CHIP Auto-Shutdown
 ============================
 
 This script will check if power is supplied through the micro USB attached to the CHIP.
