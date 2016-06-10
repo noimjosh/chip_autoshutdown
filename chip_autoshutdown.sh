@@ -1,7 +1,10 @@
 #!/bin/bash
 
-# 2016 ROBERT WOLTERMAN (xtacocorex)
-# WITH HELP FROM CHIP-hwtest/battery.sh
+# Forked https://github.com/xtacocorex/chip_batt_autoshutdown
+# Modified to shutdown on microUSB unplug with code from
+# https://bbs.nextthing.co/t/updated-battery-sh-dumps-limits-input-statuses/2921
+
+# 2016-06-09 - noimjosh
 
 # MIT LICENSE, SEE LICENSE FILE
 
@@ -10,14 +13,8 @@
 # THIS NEEDS TO BE RUN AS ROOT
 # PROBABLY SET AS A CRON JOB EVERY 5 OR 10 MINUTES
 
-# SIMPLE SCRIPT TO POWER DOWN THE CHIP BASED UPON BATTERY VOLTAGE
-
-# CHANGE THESE TO CUSTOMIZE THE SCRIPT
-# ****************************
-# ** THESE MUST BE INTEGERS **
-MINVOLTAGELEVEL=2200
-MINCHARGECURRENT=10
-# ****************************
+# SIMPLE SCRIPT TO POWER DOWN THE CHIP WHEN MICRO USB POWER IS LOST
+# NOTE, THIS WILL ONLY WORK IF A LIPO BATTERY IS ATTACHED
 
 readonly SCRIPT_NAME=$(basename $0)
 
@@ -26,46 +23,24 @@ log() {
     logger -p user.notice -t $SCRIPT_NAME "$@"
 }
 
-# TALK TO THE POWER MANAGEMENT
-i2cset -y -f 0 0x34 0x82 0xC3
+# set ADC enabled for all channels
+ADC=$(i2cget -y -f 0 0x34 0x82)
+# if couldn't perform get, then exit immediately
+[ $? -ne 0 ] && exit $?
 
-# GET POWER OP MODE
-POWER_OP_MODE=$(i2cget -y -f 0 0x34 0x01)
+if [ "$ADC" != "0xff" ] ; then
+    i2cset -y -f 0 0x34 0x82 0xff
+    # Need to wait at least 1/25s for the ADC to take a reading
+    sleep 1
+fi
 
-# SEE IF BATTERY EXISTS
-BAT_EXIST=$(($(($POWER_OP_MODE&0x20))/32))
+# GET MICRO USB POWER STATUS
+PLUGGED_IN=$(i2cget -y -f 0 0x34 0x5a)
 
-if [ $BAT_EXIST == 1 ]; then
-    
-    log "CHIP HAS A BATTERY ATTACHED"
-    BAT_VOLT_MSB=$(i2cget -y -f 0 0x34 0x78)
-    BAT_VOLT_LSB=$(i2cget -y -f 0 0x34 0x79)
-    BAT_BIN=$(( $(($BAT_VOLT_MSB << 4)) | $(($(($BAT_VOLT_LSB & 0x0F)) )) ))
-    BAT_VOLT_FLOAT=$(echo "($BAT_BIN*1.1)"|bc)
-    # CONVERT TO AN INTEGER
-    BAT_VOLT=${BAT_VOLT_FLOAT%.*}
-        
-    # CHECK BATTERY LEVEL AGAINST MINVOLTAGELEVEL
-    if [ $BAT_VOLT -le $MINVOLTAGELEVEL ]; then
-        log "CHIP BATTERY VOLTAGE IS LESS THAN $MINVOLTAGELEVEL"
-        log "CHECKING FOR CHIP BATTERY CHARGING"
-        # GET THE CHARGE CURRENT
-        BAT_ICHG_MSB=$(i2cget -y -f 0 0x34 0x7A)
-        BAT_ICHG_LSB=$(i2cget -y -f 0 0x34 0x7B)
-        BAT_ICHG_BIN=$(( $(($BAT_ICHG_MSB << 4)) | $(($(($BAT_ICHG_LSB & 0x0F)) )) ))
-        BAT_ICHG_FLOAT=$(echo "($BAT_ICHG_BIN*0.5)"|bc)
-        # CONVERT TO AN INTEGER
-        BAT_ICHG=${BAT_ICHG_FLOAT%.*}
-    
-        # IF CHARGE CURRENT IS LESS THAN MINCHARGECURRENT, WE NEED TO SHUTDOWN
-        if [ $BAT_ICHG -le $MINCHARGECURRENT ]; then
-            log "CHIP BATTERY IS NOT CHARGING, SHUTTING DOWN NOW"
-            shutdown -h now
-        else
-            log "CHIP BATTERY IS CHARGING"
-        fi
-    else
-        log "CHIP BATTERY LEVEL IS GOOD"
-    fi
-
+# SEE IF POWER EXISTS ON MICRO USB
+if [ $(($PLUGGED_IN)) -ne 0 ]; then
+    log "CHIP IS STILL RECEIVING POWER FROM MICRO USB"
+else
+    log "CHIP IS NO LONGER RECEIVING POWER FROM MICRO USB, INITIATING SHUTDOWN"
+    shutdown now
 fi
