@@ -40,6 +40,7 @@ For 10 Minute check, enter:
   ```
 
 
-Thanks to:
+#Thanks to
 xtacocorex: https://github.com/xtacocorex/chip_batt_autoshutdown/
+
 CapnBry: https://bbs.nextthing.co/t/updated-battery-sh-dumps-limits-input-statuses/2921
