@@ -16,10 +16,11 @@
 # NOTE, THIS WILL ONLY WORK IF A LIPO BATTERY IS ATTACHED
 
 # CHANGE THESE TO CUSTOMIZE THE SCRIPT
-# *****************************
-# ** THIS MUST BE AN INTEGER **
-POLLING_WAIT=10
-# *****************************
+# ************************************
+# ** THESE VALUES MUST BE  INTEGERS **
+ASD_POLLING_WAIT=10
+ASD_CONSECUTIVE_POLLS=3
+# ************************************
 
 # set ADC enabled for all channels
 ADC=$(i2cget -y -f 0 0x34 0x82)
@@ -32,17 +33,23 @@ if [ "$ADC" != "0xff" ] ; then
     sleep 1
 fi
 
+ASD_POLLS_TRUE=0
+
 while true
 do
     # GET MICRO USB POWER STATUS
     PLUGGED_IN=$(i2cget -y -f 0 0x34 0x5a)
-    
+
     # SEE IF POWER EXISTS ON MICRO USB
     if [ $(($PLUGGED_IN)) -ne 0 ]; then
         log "CHIP IS STILL RECEIVING POWER FROM MICRO USB"
+        ASD_POLLS_TRUE=0
     else
-        log "CHIP IS NO LONGER RECEIVING POWER FROM MICRO USB, INITIATING SHUTDOWN"
-        shutdown now
+        ASD_POLLS_TRUE=$((ASD_POLLS_TRUE + 1))
+        if [$(($ASD_POLLS_TRUE)) eq $(($ASD_CONSECUTIVE_POLLS))]; then
+          log "CHIP IS NO LONGER RECEIVING POWER FROM MICRO USB, INITIATING SHUTDOWN"
+          shutdown now
+        fi
     fi
     sleep $POLLING_WAIT
 done
