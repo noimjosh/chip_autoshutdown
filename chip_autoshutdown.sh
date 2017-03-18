@@ -4,7 +4,7 @@
 # Modified to shutdown on microUSB unplug with code from
 # https://bbs.nextthing.co/t/updated-battery-sh-dumps-limits-input-statuses/2921
 
-# 2016-06-09 - noimjosh
+# 2017-03-17 - noimjosh
 
 # MIT LICENSE, SEE LICENSE FILE
 
@@ -42,14 +42,15 @@ do
 
     # SEE IF POWER EXISTS ON MICRO USB
     if [ $(($PLUGGED_IN)) -ne 0 ]; then
-        log "CHIP IS STILL RECEIVING POWER FROM MICRO USB"
+        # echo "CHIP IS STILL RECEIVING POWER FROM MICRO USB"
         ASD_POLLS_TRUE=0
     else
+        # echo "CHIP IS UNPLUGGED"
         ASD_POLLS_TRUE=$((ASD_POLLS_TRUE + 1))
-        if [$(($ASD_POLLS_TRUE)) eq $(($ASD_CONSECUTIVE_POLLS))]; then
-          log "CHIP IS NO LONGER RECEIVING POWER FROM MICRO USB, INITIATING SHUTDOWN"
+        if [$(($ASD_POLLS_TRUE)) -eq $(($ASD_CONSECUTIVE_POLLS))]; then
+          # echo "CHIP IS NO LONGER RECEIVING POWER FROM MICRO USB, INITIATING SHUTDOWN"
           shutdown now
         fi
     fi
-    sleep $POLLING_WAIT
+    sleep $ASD_POLLING_WAIT
 done
